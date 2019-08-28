@@ -9,10 +9,41 @@ from std_msgs.msg import Header
 from pr2_controllers_msgs.msg import PointHeadAction, PointHeadGoal
 from actionlib import SimpleActionClient
 
-DEFAULT_LOOK_FRAME = "high_def_optical_frame"
+import tf
+
+DEFAULT_LOOK_FRAME= "high_def_optical_frame"
+
+DEFAULT_STABLE_FRAME= "base_footprint"
+
+tfl = None
 
 # abstract interface for targetting different backends
 class LookAction:
+	def __init__(self, stable_frame= ""):
+		if stable_frame == "":
+			stable_frame = DEFAULT_STABLE_FRAME
+		self.stable_frame= stable_frame
+		self._target= PointStamped()
+
+	def setTarget(self, target):
+		# if a time is specified, transform to stable frame *once*, otherwise reinterpret on every cycle
+		if target.header.stamp > rospy.Time():
+			try:
+				tfl.waitForTransform(self.stable_frame, target.header.frame_id, target.header.stamp, rospy.Duration(0.1))
+				self._target= tfl.transformPoint(self.stable_frame, target)
+				self._target.header.stamp= rospy.Time()
+			except tf.Exception:
+				# do not update the target if we can't transform to a stable frame
+				pass
+		else:
+			self._target= target
+
+	def target(self):
+		if self._target.header.frame_id == "":
+			return self._target
+		else:
+			return tfl.transformPoint(self.stable_frame, self._target)
+
 	def goal():
 		raise Exception("not implemented")
 
@@ -25,23 +56,25 @@ class LookDirection(LookAction):
 		}
 
 	def __init__(self, direction):
+		LookAction.__init__(self)
 		try:
-			self.target= PointStamped(
+			self.setTarget(PointStamped(
 				header= Header(frame_id= "base_footprint"),
 				point= LookDirection.directions[direction]
-				)
+				))
 		except KeyError:
 			raise Exception("unknown keyword '"+str(direction)+"'")
 
 	def goal(self):
 		return PointHeadGoal(
-			target= self.target,
+			target= self.target(),
 			pointing_axis= Vector3(z= 1.0),
 			pointing_frame= DEFAULT_LOOK_FRAME
 			)
 
 class LookPoint(LookAction):
-	def __init__(self, target):
+	def __init__(self, target, stable_frame):
+		LookAction.__init__(stable_frame)
 		self.target= target
 
 	def goal(self):
@@ -52,7 +85,8 @@ class LookPoint(LookAction):
 			)
 
 class LookInitialize(LookAction):
-	def __init__(self):
+	def __init__(self, stable_frame= ""):
+		LookAction.__init__(self, stable_frame)
 		self.initialized= False
 
 	def waitForInitialize(self):
@@ -74,41 +108,49 @@ class LookVocus(LookInitialize):
 		self.initialized= True
 
 	def goal(self):
-		return PointHeadGoal(
+		goal = PointHeadGoal(
 			target= self.target,
 			pointing_axis= Vector3(z= 1.0),
 			# important as the observed behavior might not converge with any other frame
 			pointing_frame= self.target.header.frame_id
 			)
+		goal.target.header.stamp = rospy.Time() # avoid reported errors due to outdated targets
+		return goal
 
 class LookGazr(LookInitialize):
-	def __init__(self):
-		LookInitialize.__init__(self)
+	def __init__(self, stable_frame= ""):
+		LookInitialize.__init__(self, stable_frame)
 		self.sub= rospy.Subscriber("gazr/detected_faces/poses", PoseArray, self.cb)
 		self.waitForInitialize()
 
 	def cb(self, poses):
+		self.initialized= True
 		if len(poses.poses) > 0:
 			# TODO: select the best one
-			self.target= PointStamped(
+			self.setTarget( PointStamped(
 				header= poses.header,
 				point= poses.poses[0].position
-				)
-			self.initialized= True
+				) )
 
 	def goal(self):
-		return PointHeadGoal(
-			target= self.target,
+		goal= PointHeadGoal(
+			target= self.target(),
 			pointing_axis= Vector3(z= 1.0),
 			pointing_frame= DEFAULT_LOOK_FRAME
 			)
+		goal.target.header.stamp = rospy.Time() # avoid reported errors due to outdated targets
+		return goal
 
 
 class Look:
 	def __init__(self):
 		rospy.init_node("look")
 
-		self.default_max_velocity= rospy.get_param("~max_velocity", 0.2)
+		# ugly, but we need this as singleton
+		global tfl
+		tfl= tf.TransformListener()
+
+		self.default_max_velocity= rospy.get_param("~velocity", 0.2)
 		self.set_look_target(trixi_look.srv.SetTargetRequest(mode= rospy.get_param("~mode")))
 
 		self.point_head = SimpleActionClient('head_traj_controller/point_head_action', PointHeadAction)
@@ -135,14 +177,14 @@ class Look:
 		if req.mode in { "straight", "left", "right", "down" }:
 			try:
 				self.action= LookDirection(req.mode)
-			except e:
-				py.logerr(str(e))
+			except Exception as e:
+				rospy.logerr(str(e))
 		elif req.mode == "point":
 			self.action= LookPoint(req.target)
 		elif req.mode == "vocus":
 			self.action= LookVocus()
 		elif req.mode == "gazr":
-			self.action= LookGazr()
+			self.action= LookGazr(req.stable_frame)
 		else:
 			rospy.logerr("unknown Look mode '"+str(req.mode)+"'")
 		return trixi_look.srv.SetTargetResponse()
