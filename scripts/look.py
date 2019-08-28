@@ -70,7 +70,7 @@ class LookVocus(LookInitialize):
 		self.waitForInitialize()
 
 	def cb(self, point):
-		self.target= target
+		self.target= point
 		self.initialized= True
 
 	def goal(self):
@@ -90,8 +90,11 @@ class LookGazr(LookInitialize):
 	def cb(self, poses):
 		if len(poses.poses) > 0:
 			# TODO: select the best one
-			self.target= poses.poses[0].position
-		self.initialized= True
+			self.target= PointStamped(
+				header= poses.header,
+				point= poses.poses[0].position
+				)
+			self.initialized= True
 
 	def goal(self):
 		return PointHeadGoal(
