@@ -120,13 +120,14 @@ class Look:
 		# TODO: self.pub for publishing the current state (latch)
 
 	def run(self):
+		rospy.loginfo("look initialized")
 		r= rospy.Rate(20)
 		while not rospy.is_shutdown():
 			goal = self.action.goal()
 			if goal.max_velocity == 0.0:
 				goal.max_velocity = self.default_max_velocity
+			# skip invalid goals
 			if goal.target.header.frame_id != "":
-				# send goal only if we have a valid goal
 				self.point_head.send_goal(goal)
 			r.sleep()
 
