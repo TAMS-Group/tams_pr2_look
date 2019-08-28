@@ -9,6 +9,8 @@ from std_msgs.msg import Header
 from pr2_controllers_msgs.msg import PointHeadAction, PointHeadGoal
 from actionlib import SimpleActionClient
 
+DEFAULT_LOOK_FRAME = "high_def_optical_frame"
+
 # abstract interface for targetting different backends
 class LookAction:
 	def goal():
@@ -35,7 +37,7 @@ class LookDirection(LookAction):
 		return PointHeadGoal(
 			target= self.target,
 			pointing_axis= Vector3(z= 1.0),
-			pointing_frame= "kinect2_rgb_optical_frame"
+			pointing_frame= DEFAULT_LOOK_FRAME
 			)
 
 class LookPoint(LookAction):
@@ -46,7 +48,7 @@ class LookPoint(LookAction):
 		return PointHeadGoal(
 			target= self.target,
 			pointing_axis= Vector3(z= 1.0),
-			pointing_frame= "kinect2_rgb_optical_frame"
+			pointing_frame= DEFAULT_LOOK_FRAME
 			)
 
 class LookInitialize(LookAction):
@@ -95,7 +97,7 @@ class LookGazr(LookInitialize):
 		return PointHeadGoal(
 			target= self.target,
 			pointing_axis= Vector3(z= 1.0),
-			pointing_frame= "kinect2_rgb_optical_frame"
+			pointing_frame= DEFAULT_LOOK_FRAME
 			)
 
 
