@@ -73,8 +73,8 @@ class LookDirection(LookAction):
 			)
 
 class LookPoint(LookAction):
-	def __init__(self, target, stable_frame):
-		LookAction.__init__(stable_frame)
+	def __init__(self, target, stable_frame= ""):
+		LookAction.__init__(self, stable_frame)
 		self.target= target
 
 	def goal(self):
@@ -180,7 +180,7 @@ class Look:
 			except Exception as e:
 				rospy.logerr(str(e))
 		elif req.mode == "point":
-			self.action= LookPoint(req.target)
+			self.action= LookPoint(req.target, req.stable_frame)
 		elif req.mode == "vocus":
 			self.action= LookVocus()
 		elif req.mode == "gazr":
