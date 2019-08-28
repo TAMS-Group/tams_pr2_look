@@ -107,9 +107,9 @@ class LookGazr(LookInitialize):
 class Look:
 	def __init__(self):
 		rospy.init_node("look")
-		self.action= LookDirection("straight")
 
-		self.default_max_velocity= rospy.get_param("~/max_velocity", 0.2)
+		self.default_max_velocity= rospy.get_param("~max_velocity", 0.2)
+		self.set_look_target(trixi_look.srv.SetTargetRequest(mode= rospy.get_param("~mode")))
 
 		self.point_head = SimpleActionClient('head_traj_controller/point_head_action', PointHeadAction)
 		if not self.point_head.wait_for_server(rospy.Duration(20) ):
