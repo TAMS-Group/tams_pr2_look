@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>trixi_look</name>
+  <version>0.0.0</version>
+  <description>The trixi_look package</description>
+
+  <maintainer email="goerner@informatik.uni-hamburg.de">Michael Goerner</maintainer>
+
+  <license>BSD</license>
+
+  <depend>geometry_msgs</depend>
+  <build_depend>message_generation</build_depend>
+  <exec_depend>message_runtime</exec_depend>
+
+  <buildtool_depend>catkin</buildtool_depend>
+</package>
