@@ -131,7 +131,7 @@ class Look:
 			r.sleep()
 
 	def set_look_target(self, req):
-		if req.mode in { "straight", "left", "right" }:
+		if req.mode in { "straight", "left", "right", "down" }:
 			try:
 				self.action= LookDirection(req.mode)
 			except e:
