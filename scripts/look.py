@@ -136,7 +136,7 @@ class LookGazr(LookInitialize):
 	def goal(self):
 		goal= PointHeadGoal(
 			target= self.target(),
-			pointing_axis= Vector3(z= 1.0),
+			pointing_axis= Vector3(y= -0.1, z= 1.0), # slightly offset by y to account for human interpretation
 			pointing_frame= DEFAULT_LOOK_FRAME
 			)
 		goal.target.header.stamp = rospy.Time() # avoid reported errors due to outdated targets
