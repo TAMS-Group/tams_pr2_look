@@ -53,6 +53,7 @@ class LookDirection(LookAction):
 		"left" : Point(x= 1.3, y= 1.0, z= 1.6),
 		"right" : Point(x= 1.3, y= -1.0, z= 1.6),
 		"down" : Point(x= 1.3, y= 0.0, z= 0.5),
+		"table" : Point(x= 1.1, y= 0.0, z= 0.4),
 		}
 
 	def __init__(self, direction):
@@ -174,7 +175,7 @@ class Look:
 			r.sleep()
 
 	def set_look_target(self, req):
-		if req.mode in { "straight", "left", "right", "down" }:
+		if req.mode in LookDirection.directions:
 			try:
 				self.action= LookDirection(req.mode)
 			except Exception as e:
