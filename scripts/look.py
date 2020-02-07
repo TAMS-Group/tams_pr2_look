@@ -17,8 +17,14 @@ DEFAULT_STABLE_FRAME= "base_footprint"
 
 tfl = None
 
-# abstract interface for targetting different backends
 class LookAction:
+	'''
+	abstract interface for targetting different backends
+
+	stable_frame         -> frame considered stable over time when following a target
+	goal()               -> abstract interface method that has to return a PointHeadGoal in every cycle
+	setTarget / target() -> general pointStamped relevant for some backends
+	'''
 	def __init__(self, stable_frame= ""):
 		if stable_frame == "":
 			stable_frame = DEFAULT_STABLE_FRAME
@@ -48,6 +54,10 @@ class LookAction:
 		raise Exception("not implemented")
 
 class LookDirection(LookAction):
+	'''
+	collection of modes to look in specific directions given by keywords
+	'''
+
 	directions = {
 		"straight" : Point(x= 1.3, y= 0.0, z= 1.6),
 		"left" : Point(x= 1.3, y= 1.0, z= 1.6),
@@ -74,6 +84,12 @@ class LookDirection(LookAction):
 			)
 
 class LookPoint(LookAction):
+	'''
+	general mode, targetting a specific point in space
+
+	The point might move relative to stable_frame over time
+	and might be specified in a moving frame too
+	'''
 	def __init__(self, target, stable_frame= ""):
 		LookAction.__init__(self, stable_frame)
 		self.target= target
@@ -86,6 +102,11 @@ class LookPoint(LookAction):
 			)
 
 class LookInitialize(LookAction):
+	'''
+	Abstract base class for modes that need to initialize
+
+	Provide some basic logging while waiting
+	'''
 	def __init__(self, stable_frame= ""):
 		LookAction.__init__(self, stable_frame)
 		self.initialized= False
@@ -99,6 +120,9 @@ class LookInitialize(LookAction):
 			r.sleep()
 
 class LookVocus(LookInitialize):
+	'''
+	mode looking at the most salient region according to vocus
+	'''
 	def __init__(self):
 		LookInitialize.__init__(self)
 		self.sub= rospy.Subscriber("saliency_poi", PointStamped, self.cb)
@@ -119,6 +143,9 @@ class LookVocus(LookInitialize):
 		return goal
 
 class LookGazr(LookInitialize):
+	'''
+	Look at human faces detected by gazr
+	'''
 	def __init__(self, stable_frame= ""):
 		LookInitialize.__init__(self, stable_frame)
 		self.sub= rospy.Subscriber("gazr/detected_faces/poses", PoseArray, self.cb)
@@ -152,6 +179,7 @@ class Look:
 		tfl= tf.TransformListener()
 
 		self.default_max_velocity= rospy.get_param("~velocity", 0.2)
+		# TODO: allow setting point / stable_frame from parameters
 		self.set_look_target(trixi_look.srv.SetTargetRequest(mode= rospy.get_param("~mode")))
 
 		self.point_head = SimpleActionClient('head_traj_controller/point_head_action', PointHeadAction)
@@ -163,7 +191,12 @@ class Look:
 		# TODO: self.pub for publishing the current state (latch)
 
 	def run(self):
+		'''
+		run controlling loop
+		'''
+
 		rospy.loginfo("look initialized")
+
 		r= rospy.Rate(20)
 		while not rospy.is_shutdown():
 			goal = self.action.goal()
@@ -175,6 +208,9 @@ class Look:
 			r.sleep()
 
 	def set_look_target(self, req):
+		'''
+		ROS service callback to change mode dynamically
+		'''
 		if req.mode in LookDirection.directions:
 			try:
 				self.action= LookDirection(req.mode)
