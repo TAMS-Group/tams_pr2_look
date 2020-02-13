@@ -14,6 +14,9 @@ add_service_files(FILES
 	SetTarget.srv
 )
 
+add_message_files(FILES
+	State.msg
+)
 
 generate_messages(DEPENDENCIES
 	${MSG_DEPS})

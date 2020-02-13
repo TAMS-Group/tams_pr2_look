@@ -2,6 +2,7 @@
 
 import rospy
 import trixi_look.srv
+import trixi_look.msg
 
 from geometry_msgs.msg import PointStamped, Point, PoseArray, Vector3
 from std_msgs.msg import Header
@@ -190,6 +191,8 @@ class Look:
 		self.srv= rospy.Service(rospy.get_name()+'/target', trixi_look.srv.SetTarget, self.set_look_target)
 		# TODO: self.pub for publishing the current state (latch)
 
+		self.state_pub = rospy.Publisher(rospy.get_name()+"/state", trixi_look.msg.State, queue_size= 1)
+
 	def run(self):
 		'''
 		run controlling loop
@@ -199,12 +202,20 @@ class Look:
 
 		r= rospy.Rate(20)
 		while not rospy.is_shutdown():
+			# current active mode provides LookAt action goal
 			goal = self.action.goal()
+
+			# use fixed velocity if the active mode does not specify it
 			if goal.max_velocity == 0.0:
 				goal.max_velocity = self.default_max_velocity
+
 			# skip invalid goals
 			if goal.target.header.frame_id != "":
 				self.point_head.send_goal(goal)
+
+			# publish current internal state
+			self.state_pub.publish(self.mode)
+
 			r.sleep()
 
 	def set_look_target(self, req):
@@ -214,14 +225,18 @@ class Look:
 		if req.mode in LookDirection.directions:
 			try:
 				self.action= LookDirection(req.mode)
+				self.mode = trixi_look.srv.SetTargetRequest(mode= req.mode)
 			except Exception as e:
 				rospy.logerr(str(e))
 		elif req.mode == "point":
 			self.action= LookPoint(req.target, req.stable_frame)
+			self.mode = req
 		elif req.mode == "vocus":
 			self.action= LookVocus()
+			self.mode = trixi_look.srv.SetTargetRequest(mode= req.mode)
 		elif req.mode == "gazr":
 			self.action= LookGazr(req.stable_frame)
+			self.mode = trixi_look.srv.SetTargetRequest(mode= req.mode)
 		else:
 			rospy.logerr("unknown Look mode '"+str(req.mode)+"'")
 		return trixi_look.srv.SetTargetResponse()
