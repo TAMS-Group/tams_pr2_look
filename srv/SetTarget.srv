@@ -1,3 +1,15 @@
+# Look at predetermined positions
+string LOOK_STRAIGHT="straight"
+string LOOK_LEFT="left"
+string LOOK_RIGHT="right"
+string LOOK_DOWN="down"
+string LOOK_TABLE="table"
+string LOOK_POINT="point" # Look at target w.r.t. stable_frame
+
+# These assume the corresponding nodes running
+string LOOK_VOCUS="vocus" # look at Vocus's saliency point of interest
+string LOOK_GAZR="gazr" # look at detected human face
+
 string mode
 geometry_msgs/PointStamped target
 string stable_frame
