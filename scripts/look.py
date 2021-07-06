@@ -214,7 +214,7 @@ class Look:
 				self.point_head.send_goal(goal)
 
 			# publish current internal state
-			self.state_pub.publish(self.mode)
+			self.state_pub.publish(trixi_look.msg.State(mode= self.request.mode, target= self.request.target, stable_frame= self.request.stable_frame))
 
 			r.sleep()
 
@@ -225,18 +225,18 @@ class Look:
 		if req.mode in LookDirection.directions:
 			try:
 				self.action= LookDirection(req.mode)
-				self.mode = trixi_look.srv.SetTargetRequest(mode= req.mode)
+				self.request = trixi_look.srv.SetTargetRequest(mode= req.mode)
 			except Exception as e:
 				rospy.logerr(str(e))
 		elif req.mode == "point":
 			self.action= LookPoint(req.target, req.stable_frame)
-			self.mode = req
+			self.request = req
 		elif req.mode == "vocus":
 			self.action= LookVocus()
-			self.mode = trixi_look.srv.SetTargetRequest(mode= req.mode)
+			self.request = trixi_look.srv.SetTargetRequest(mode= req.mode)
 		elif req.mode == "gazr":
 			self.action= LookGazr(req.stable_frame)
-			self.mode = trixi_look.srv.SetTargetRequest(mode= req.mode)
+			self.request = trixi_look.srv.SetTargetRequest(mode= req.mode)
 		else:
 			rospy.logerr("unknown Look mode '"+str(req.mode)+"'")
 		return trixi_look.srv.SetTargetResponse()
