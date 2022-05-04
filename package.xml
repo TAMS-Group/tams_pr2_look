@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>trixi_look</name>
+  <name>tams_pr2_look</name>
   <version>0.0.0</version>
-  <description>The trixi_look package</description>
+  <description>The tams_pr2_look package</description>
 
   <maintainer email="goerner@informatik.uni-hamburg.de">Michael Goerner</maintainer>
 

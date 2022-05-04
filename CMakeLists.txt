@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(trixi_look)
+project(tams_pr2_look)
 
 set(MSG_DEPS
 	geometry_msgs

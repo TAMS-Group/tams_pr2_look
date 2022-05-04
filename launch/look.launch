@@ -2,7 +2,7 @@
 <launch>
     <arg name="mode" default="straight" />
     <arg name="velocity" default="0.25" />
-    <node pkg="trixi_look" type="look.py" name="look">
+    <node pkg="tams_pr2_look" type="look.py" name="look">
         <param name="mode" value="$(arg mode)" />
         <param name="velocity" value="$(arg velocity)" />
     </node>
