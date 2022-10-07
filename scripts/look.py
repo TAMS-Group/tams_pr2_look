@@ -186,7 +186,7 @@ class Look:
 		self.point_head = SimpleActionClient('head_traj_controller/point_head_action', PointHeadAction)
 		if not self.point_head.wait_for_server(rospy.Duration(20) ):
 			rospy.logwarn("still waiting for head_traj_controller/point_head_action")
-			self.point_head_action.wait_for_server()
+			self.point_head.wait_for_server()
 
 		self.srv= rospy.Service(rospy.get_name()+'/target', tams_pr2_look.srv.SetTarget, self.set_look_target)
 		# TODO: self.pub for publishing the current state (latch)
