@@ -12,6 +12,8 @@ from actionlib import SimpleActionClient
 
 import tf
 
+import pyquaternion
+
 DEFAULT_LOOK_FRAME= "high_def_optical_frame"
 
 DEFAULT_STABLE_FRAME= "base_footprint"
@@ -170,6 +172,33 @@ class LookGazr(LookInitialize):
 		goal.target.header.stamp = rospy.Time() # avoid reported errors due to outdated targets
 		return goal
 
+class LookSoundSourceLocalization(LookInitialize):
+	'''
+	Look at primary sound source estimated by ssloc
+	'''
+	def __init__(self, stable_frame= ""):
+		LookInitialize.__init__(self, stable_frame)
+		self.sub= rospy.Subscriber("ssloc/unit_sphere_sst_poses", PoseArray, self.cb)
+		self.waitForInitialize()
+
+	def cb(self, poses):
+		self.initialized= True
+		if len(poses.poses) > 0:
+			o= poses.poses[0].orientation
+			pt = pyquaternion.Quaternion(o.w, o.x, o.y, o.z).rotate([2,0,0])
+			self.setTarget( PointStamped(
+				header= poses.header,
+				point= Point(*pt)
+				) )
+
+	def goal(self):
+		goal= PointHeadGoal(
+			target= self.target(),
+			pointing_axis= Vector3(y= -0.1, z= 1.0),
+			pointing_frame= DEFAULT_LOOK_FRAME
+			)
+		goal.target.header.stamp = rospy.Time() # avoid reported errors due to outdated targets
+		return goal
 
 class Look:
 	def __init__(self):
@@ -236,6 +265,9 @@ class Look:
 			self.request = tams_pr2_look.srv.SetTargetRequest(mode= req.mode)
 		elif req.mode == "gazr":
 			self.action= LookGazr(req.stable_frame)
+			self.request = tams_pr2_look.srv.SetTargetRequest(mode= req.mode)
+		elif req.mode == "sound_source_localization":
+			self.action= LookSoundSourceLocalization(req.stable_frame)
 			self.request = tams_pr2_look.srv.SetTargetRequest(mode= req.mode)
 		else:
 			rospy.logerr("unknown Look mode '"+str(req.mode)+"'")
