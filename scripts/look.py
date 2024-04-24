@@ -220,6 +220,17 @@ class LookSoundSourceLocalization(LookInitialize):
 		goal.target.header.stamp = rospy.Time() # avoid reported errors due to outdated targets
 		return goal
 
+class LookInactive(LookAction):
+	'''
+	Have the node active, but send no goals to control the head otherwise.
+	'''
+	def __init__(self):
+		LookAction.__init__(self)
+
+	def goal(self):
+		goal = PointHeadGoal()
+		return goal
+
 class Look:
 	def __init__(self):
 		rospy.init_node("look")
@@ -296,6 +307,9 @@ class Look:
 		elif req.mode == "sound_source_localization":
 			self.action= LookSoundSourceLocalization(req.stable_frame)
 			self.request = tams_pr2_look.srv.SetTargetRequest(mode= req.mode)
+		elif req.mode == "inactive":
+			self.action = LookInactive()
+			self.request = req
 		else:
 			rospy.logerr("unknown Look mode '"+str(req.mode)+"'")
 		return tams_pr2_look.srv.SetTargetResponse()
