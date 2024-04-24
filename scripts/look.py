@@ -208,6 +208,9 @@ class Look:
 		global tfl
 		tfl= tf.TransformListener()
 
+		# Initalize action attribute to allow testing for subscribers at first initialization
+		self.action = None
+
 		self.default_max_velocity= rospy.get_param("~velocity", 0.2)
 		# TODO: allow setting point / stable_frame from parameters
 		self.set_look_target(tams_pr2_look.srv.SetTargetRequest(mode= rospy.get_param("~mode")))
@@ -251,6 +254,10 @@ class Look:
 		'''
 		ROS service callback to change mode dynamically
 		'''
+		# Unregister subscriber from previous action to prevent "rejected invalid look at target behind robot" from its callbacks
+		if hasattr(self.action, 'sub'):
+			self.action.sub.unregister()
+
 		if req.mode in LookDirection.directions:
 			try:
 				self.action= LookDirection(req.mode)
