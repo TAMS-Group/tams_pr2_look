@@ -35,6 +35,8 @@ class LookAction:
 		self.stable_frame= stable_frame
 		self._target= PointStamped()
 
+		self.pub_target = rospy.Publisher("~target", PointStamped, queue_size= 1)
+
 	def setTarget(self, target):
 		# if a time is specified, transform to stable frame *once*, otherwise reinterpret on every cycle
 		if target.header.stamp > rospy.Time():
@@ -56,7 +58,9 @@ class LookAction:
 		if self._target.header.frame_id == "":
 			return self._target
 		else:
-			return tfl.transformPoint(self.stable_frame, self._target)
+			t = tfl.transformPoint(self.stable_frame, self._target)
+			self.pub_target.publish(t)
+			return t
 
 	def goal():
 		raise Exception("not implemented")
