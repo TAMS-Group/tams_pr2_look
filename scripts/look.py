@@ -164,13 +164,16 @@ class LookGazr(LookInitialize):
 		self.waitForInitialize()
 
 	def cb(self, poses):
+		if len(poses.poses) == 0:
+			return
+
+		poses.poses.sort(key=lambda pose: pose.position.y)
+		# TODO: which face is the best to look at?
+		self.setTarget( PointStamped(
+			header= poses.header,
+			point= poses.poses[int(len(poses.poses)/2)].position
+			) )
 		self.initialized= True
-		if len(poses.poses) > 0:
-			# TODO: select the best one
-			self.setTarget( PointStamped(
-				header= poses.header,
-				point= poses.poses[0].position
-				) )
 
 	def goal(self):
 		goal= PointHeadGoal(
