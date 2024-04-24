@@ -197,16 +197,24 @@ class LookSoundSourceLocalization(LookInitialize):
 		self.initialized= True
 		if len(poses.poses) > 0:
 			o= poses.poses[0].orientation
-			pt = pyquaternion.Quaternion(o.w, o.x, o.y, o.z).rotate([2,0,0])
-			self.setTarget( PointStamped(
+			pt = pyquaternion.Quaternion(o.w, o.x, o.y, o.z).rotate([2.0,0,0])
+			pts = PointStamped(
 				header= poses.header,
 				point= Point(*pt)
-				) )
+				)
+			try:
+				level_frame = "base_footprint"
+				tfl.waitForTransform(level_frame, pts.header.frame_id, pts.header.stamp, rospy.Duration(0.1))
+				pts = tfl.transformPoint(level_frame, pts)
+				pts.point.z = 1.8
+				self.setTarget( pts )
+			except tf.Exception:
+				pass
 
 	def goal(self):
 		goal= PointHeadGoal(
 			target= self.target(),
-			pointing_axis= Vector3(y= -0.1, z= 1.0),
+			pointing_axis= Vector3(y= -0.2, z= 1.0),
 			pointing_frame= DEFAULT_LOOK_FRAME
 			)
 		goal.target.header.stamp = rospy.Time() # avoid reported errors due to outdated targets
