@@ -37,6 +37,9 @@ class LookAction:
 
 		self.pub_target = rospy.Publisher("~target", PointStamped, queue_size= 1)
 
+	def initialize(self):
+		pass
+
 	def setTarget(self, target):
 		# if a time is specified, transform to stable frame *once*, otherwise reinterpret on every cycle
 		if target.header.stamp > rospy.Time():
@@ -122,13 +125,20 @@ class LookInitialize(LookAction):
 	def __init__(self, stable_frame= ""):
 		LookAction.__init__(self, stable_frame)
 		self.initialized= False
+		self.sub = None
+
+	def initialize(self):
+		self.waitForInitialize()
 
 	def waitForInitialize(self):
 		r= rospy.Rate(10)
 		wait_start= rospy.Time.now()
 		while not rospy.is_shutdown() and not self.initialized:
+			# if sub was shut down, just return. something else was started in the meantime
+			if self.sub is not None and self.sub.impl is None:
+				return
 			if rospy.Time.now() - wait_start > rospy.Duration(5.0):
-				rospy.logwarn_throttle(10, "Still initializing requested LookAction. Is the corresponding backend running?")
+				rospy.logwarn_throttle(10, f"Still initializing requested LookAction {self.__class__.__name__}. Is the corresponding backend running?")
 			r.sleep()
 
 class LookVocus(LookInitialize):
@@ -138,7 +148,6 @@ class LookVocus(LookInitialize):
 	def __init__(self):
 		LookInitialize.__init__(self)
 		self.sub= rospy.Subscriber("saliency_poi", PointStamped, self.cb)
-		self.waitForInitialize()
 
 	def cb(self, point):
 		self.target= point
@@ -161,7 +170,6 @@ class LookGazr(LookInitialize):
 	def __init__(self, stable_frame= ""):
 		LookInitialize.__init__(self, stable_frame)
 		self.sub= rospy.Subscriber("gazr/detected_faces/poses", PoseArray, self.cb)
-		self.waitForInitialize()
 
 	def cb(self, poses):
 		if len(poses.poses) == 0:
@@ -191,7 +199,6 @@ class LookFaceDetection(LookInitialize):
 	def __init__(self, stable_frame= ""):
 		LookInitialize.__init__(self, stable_frame)
 		self.sub= rospy.Subscriber("facedetection/face_poses", PoseArray, self.cb)
-		self.waitForInitialize()
 
 	def cb(self, poses):
 		if len(poses.poses) == 0:
@@ -220,7 +227,6 @@ class LookSoundSourceLocalization(LookInitialize):
 	def __init__(self, stable_frame= ""):
 		LookInitialize.__init__(self, stable_frame)
 		self.sub= rospy.Subscriber("ssloc/unit_sphere_sst_poses", PoseArray, self.cb)
-		self.waitForInitialize()
 
 	def cb(self, poses):
 		self.initialized= True
@@ -314,7 +320,7 @@ class Look:
 		'''
 		ROS service callback to change mode dynamically
 		'''
-		# Unregister subscriber from previous action to prevent "rejected invalid look at target behind robot" from its callbacks
+		# Unregister subscriber from previous action
 		if hasattr(self.action, 'sub'):
 			self.action.sub.unregister()
 
@@ -344,6 +350,10 @@ class Look:
 			self.request = req
 		else:
 			rospy.logerr("unknown Look mode '"+str(req.mode)+"'")
+			return tams_pr2_look.srv.SetTargetResponse()
+
+		self.action.initialize()
+
 		return tams_pr2_look.srv.SetTargetResponse()
 
 def run():
