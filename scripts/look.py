@@ -10,6 +10,7 @@ from std_msgs.msg import Header
 from pr2_controllers_msgs.msg import PointHeadAction, PointHeadGoal
 from actionlib import SimpleActionClient
 
+import math
 import tf
 
 import pyquaternion
@@ -39,8 +40,12 @@ class LookAction:
 		if target.header.stamp > rospy.Time():
 			try:
 				tfl.waitForTransform(self.stable_frame, target.header.frame_id, target.header.stamp, rospy.Duration(0.1))
-				self._target= tfl.transformPoint(self.stable_frame, target)
-				self._target.header.stamp= rospy.Time()
+				target_trans = tfl.transformPoint(self.stable_frame, target)
+				if abs(math.atan2(target_trans.point.x, target_trans.point.y)+math.tau/4) > math.tau/6:
+					self._target= target_trans
+					self._target.header.stamp= rospy.Time()
+				else:
+					rospy.logwarn_throttle(30.0, "rejected invalid look at target behind robot")
 			except tf.Exception:
 				# do not update the target if we can't transform to a stable frame
 				pass
